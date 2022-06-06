@@ -34,3 +34,10 @@ docker-compose exec -T node geth --exec 'clique.getSigners()' attach
 ```
 
 To vote a node out of the network, you can use the same commands as described before and simply replace `true` by false.
+
+Example: Transfer Wei
+
+```bash
+eth.getBalance(eth.accounts[0])
+eth.sendTransaction({from: eth.accounts[1], to: eth.accounts[0], value: 10})
+```

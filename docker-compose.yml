@@ -34,26 +34,26 @@ services:
       - ./genesis.json:/genesis.json:ro
       - /etc/localtime:/etc/localtime:ro
     command: /scripts/sealer.sh 0x6c319A49787d10a6e0c72a25DB06cc555370c4DD
-  # sealer-two:
-  #   image: ethereum/client-go:alltools-release-1.10
-  #   restart: on-failure
-  #   links: [bootnode]
-  #   volumes:
-  #     - ./scripts:/scripts:ro
-  #     - ./keystore:/keystore:ro
-  #     - ./genesis.json:/genesis.json:ro
-  #     - /etc/localtime:/etc/localtime:ro
-  #   command: /scripts/sealer.sh 0x9E9581516679F57Aa7eb81D278841DF6aB93902B
-  # sealer-three:
-  #   image: ethereum/client-go:alltools-release-1.10
-  #   restart: on-failure
-  #   links: [bootnode]
-  #   volumes:
-  #     - ./scripts:/scripts:ro
-  #     - ./keystore:/keystore:ro
-  #     - ./genesis.json:/genesis.json:ro
-  #     - /etc/localtime:/etc/localtime:ro
-  #   command: /scripts/sealer.sh 0x71b3D7405080197fC03cA82bCDd1764F1e14ABf2
+  sealer-two:
+    image: ethereum/client-go:alltools-release-1.10
+    restart: on-failure
+    links: [bootnode]
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./keystore:/keystore:ro
+      - ./genesis.json:/genesis.json:ro
+      - /etc/localtime:/etc/localtime:ro
+    command: /scripts/sealer.sh 0x9E9581516679F57Aa7eb81D278841DF6aB93902B
+  sealer-three:
+    image: ethereum/client-go:alltools-release-1.10
+    restart: on-failure
+    links: [bootnode]
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./keystore:/keystore:ro
+      - ./genesis.json:/genesis.json:ro
+      - /etc/localtime:/etc/localtime:ro
+    command: /scripts/sealer.sh 0x71b3D7405080197fC03cA82bCDd1764F1e14ABf2
   # sealer-four:
   #   image: ethereum/client-go:alltools-release-1.10
   #   restart: on-failure
