@@ -12,6 +12,7 @@ prepareDatadir $datadir $etherbase
 
 geth --datadir $datadir \
      --networkid "101010" \
+     --http --http.addr '0.0.0.0' --http.port 8545 --http.api 'txpool,eth,net,web3,debug' --http.corsdomain '*' \
      --ws --ws.addr '0.0.0.0' --ws.port 8546 --ws.origins '*' \
      --bootnodes "enode://f94118749beb981da38b82ab6be7b00dc0082783d698080fd0ae45a2c3d42f1ce74cbb153ffcfb1379b64235605bfff43f85b112032ddd9685ad2ab88735e1b1@${bootnode}:30301" \
      --unlock $addresses \

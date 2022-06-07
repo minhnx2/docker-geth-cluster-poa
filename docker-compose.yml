@@ -6,6 +6,8 @@ services:
     image: ethereum/client-go:alltools-release-1.10
     ports:
       - 30303:30303
+    networks:
+      overlay:
     volumes:
       - ./scripts:/scripts:ro
       - ./boot.key:/boot.key:ro
@@ -18,59 +20,153 @@ services:
     links: [bootnode]
     ports:
       - 8544-8546:8544-8546
+    networks:
+      overlay:
+        ipv4_address: 172.16.0.101
     volumes:
       - ./scripts:/scripts:ro
       - ./keystore:/keystore:ro
       - ./genesis.json:/genesis.json:ro
-      - /etc/localtime:/etc/localtime:ro
+      - /etc/localtime:/etc/localtime:ro    
     command: /scripts/node.sh 0x71b3D7405080197fC03cA82bCDd1764F1e14ABf2
   # Sealer nodes are workers that commit blocks constantly.
-  sealer-one:
+  sealer-1:
     image: ethereum/client-go:alltools-release-1.10
     links: [bootnode]
+    networks:
+      overlay:
     volumes:
       - ./scripts:/scripts:ro
       - ./keystore:/keystore:ro
       - ./genesis.json:/genesis.json:ro
       - /etc/localtime:/etc/localtime:ro
     command: /scripts/sealer.sh 0x6c319A49787d10a6e0c72a25DB06cc555370c4DD
-  sealer-two:
+  sealer-2:
     image: ethereum/client-go:alltools-release-1.10
     restart: on-failure
     links: [bootnode]
+    networks:
+      overlay:
     volumes:
       - ./scripts:/scripts:ro
       - ./keystore:/keystore:ro
       - ./genesis.json:/genesis.json:ro
       - /etc/localtime:/etc/localtime:ro
     command: /scripts/sealer.sh 0x9E9581516679F57Aa7eb81D278841DF6aB93902B
-  sealer-three:
+  sealer-3:
     image: ethereum/client-go:alltools-release-1.10
     restart: on-failure
     links: [bootnode]
+    networks:
+      overlay:
     volumes:
       - ./scripts:/scripts:ro
       - ./keystore:/keystore:ro
       - ./genesis.json:/genesis.json:ro
       - /etc/localtime:/etc/localtime:ro
     command: /scripts/sealer.sh 0x71b3D7405080197fC03cA82bCDd1764F1e14ABf2
-  # sealer-four:
+  # sealer-4:
   #   image: ethereum/client-go:alltools-release-1.10
   #   restart: on-failure
   #   links: [bootnode]
+  #   networks:
+  #     overlay:
   #   volumes:
   #     - ./scripts:/scripts:ro
   #     - ./keystore:/keystore:ro
   #     - ./genesis.json:/genesis.json:ro
   #     - /etc/localtime:/etc/localtime:ro
   #   command: /scripts/sealer.sh 0x0Cbbb79B02449ea575F6185dd3C541E9ab8d8182
-  # sealer-five:
+  # sealer-5:
   #   image: ethereum/client-go:alltools-release-1.10
   #   restart: on-failure
   #   links: [bootnode]
+  #   networks:
+  #     overlay:
   #   volumes:
   #     - ./scripts:/scripts:ro
   #     - ./keystore:/keystore:ro
   #     - ./genesis.json:/genesis.json:ro
   #     - /etc/localtime:/etc/localtime:ro
-  #   command: /scripts/sealer.sh 0x563A5fC36b990D68bBCaAA206C281BfEc31134AB
+  #   command: /scripts/sealer.sh 0x563A5fC36b990D68bBCaAA206C281BfEc31134AB  
+  # monitor network status
+  eth-net-intelligence-api:
+    build: tools/eth-net-intelligence-api
+    # depends_on:      
+    #   - node
+    links: [node]
+    ports:
+      - "30301:30303"      
+    networks:
+      overlay:        
+    volumes:
+      - ./tools/eth-net-intelligence-api/app.json:/home/ethnetintel/eth-net-intelligence-api/app.json:ro
+    hostname: eth-netstats-api
+    environment:
+      - TZ=Europe/Zurich    
+    restart: always
+  eth-netstats:
+    build: tools/eth-netstats
+    links: [eth-net-intelligence-api]
+    ports:
+      - "8081:8081"
+    networks:
+      overlay:
+        ipv4_address: 172.16.0.102
+    hostname: eth-netstats
+    environment:
+      - PORT=8081
+      - ETH_NET_INTELL_WS=ws://localhost:8081
+      - WS_SECRET=eth-net-stats-has-a-secret
+    restart: always
+
+  # explore blocks
+  blockscout-db:
+    image: postgres:13.6    
+    restart: always
+    container_name: 'blockscout-postgres'
+    environment:
+        POSTGRES_PASSWORD: ''
+        POSTGRES_USER: 'postgres'
+        POSTGRES_HOST_AUTH_METHOD: 'trust'
+    networks:
+      overlay:
+    volumes:
+      - ./data/blockscout-pg-data:/var/lib/postgresql/data
+    ports:
+      - 7432:5432
+  blockscout:
+    depends_on:
+      - blockscout-db
+      # - node
+    image: blockscout/blockscout:${DOCKER_TAG:-latest}
+    restart: always
+    container_name: 'blockscout'
+    links:
+      - blockscout-db:database
+    command: 'mix do ecto.create, ecto.migrate, phx.server'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    env_file:
+      -  ./tools/blockscout/common-blockscout.env
+    environment:
+        PORT: 8082
+        ETHEREUM_JSONRPC_VARIANT: 'geth'
+        BLOCK_TRANSFORMER: 'clique'
+        ETHEREUM_JSONRPC_HTTP_URL: http://172.16.0.101:8545/
+        DATABASE_URL: postgresql://postgres:@host.docker.internal:7432/blockscout?ssl=false
+        ECTO_USE_SSL: 'false'
+    networks:
+      overlay:
+    ports:
+      - 8082:8082
+    logging:
+      driver: none
+      
+networks:
+  overlay:
+    driver: bridge
+    ipam:       
+      driver: default
+      config:       
+        - subnet:  172.16.0.0/24    
